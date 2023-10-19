@@ -1,12 +1,26 @@
 # -Asterisk-scripts
-Slack alert for wombat/issabel server
+# Slack alert for wombat/issabel server
 
-Asterisk-scripts can be found in root directory. It contain two bash scripts : monitor_asterisk.sh and monitor_wombat.sh.
-The scripts exist so as to send an alert to slack when Wombat server and Asterisk services are down, it will also do a reboot automatically.
-To execute:
-run ssh centos@10.255.252.182 to ssh into the wombat server on your terminal
-run sudo -i to switch to the root directory
-run ls to view the bash script
-you can edit the bash script file or the cron job
-run chmod +x 'thenameofbashscript .sh' to make the script executable
-run ./'thenameofbashscript'.sh to test the script by manually running it.
+#!/bin/bash
+echo “------------------------------”
+echo `date`
+RESPONSE=response.txt
+status=$(curl -XGET http://voice.getcarbon.co:8080/wombat/WombatItDials.jsp?#LOGOFF -m 5 -s -w %{http_code} $1 -o $RESPONSE)
+echo $status
+if [ $status != ‘200’ ]
+then
+    echo  ‘Cannot connect to dialer services: Attempting to restart the server’
+    curl --insecure -X POST -H ‘Content-type: application/json’ --data ‘{“text”:” <@U01666KFTJ4> <@U04JW1DS6DU>  wombat dialer is down, restarting the server...“}’ https://hooks.slack.com/services/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
+else
+    echo “Dialer is UP”
+fi 
+
+---------------------
+#!/bin/bash
+SLACK_WEBHOOK_URL=“https://hooks.slack.com/services/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”
+# Check if asterisk service is running
+if systemctl is-active asterisk.service &> /dev/null; then
+    echo “asterisk service is running.”
+else
+    curl -X POST -H ‘Content-type: application/json’ --data ‘{“text”:” <@U04JW77DS6DU> <@U04K2662PZ0A> Asterisk Service (Issabel) is down, Restarting Service...“}’ “$SLACK_WEBHOOK_URL”
+    sudo service asterisk restart 
